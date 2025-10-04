@@ -5,19 +5,19 @@ import time
 
 def create_empty_game_state():
     return (
-        ("E", "E", "E", "E", "E", "E", "E"), 
-        ("E", "E", "E", "E", "E", "E", "E"), 
-        ("E", "E", "E", "E", "E", "E", "E"), 
-        ("E", "E", "E", "E", "E", "E", "E"), 
-        ("E", "E", "E", "E", "E", "E", "E"), 
-        ("E", "E", "E", "E", "E", "E", "E")
+        (" ", " ", " ", " ", " ", " ", " "), 
+        (" ", " ", " ", " ", " ", " ", " "),
+        (" ", " ", " ", " ", " ", " ", " "),
+        (" ", " ", " ", " ", " ", " ", " "),
+        (" ", " ", " ", " ", " ", " ", " "),
+        (" ", " ", " ", " ", " ", " ", " ")
     )
 
 
 def check_state_draw(state):
     for r in range(6):
         for c in range(7):
-            if state[r][c] == 'E':
+            if state[r][c] == ' ':
                 return False
     return True
 
@@ -28,7 +28,7 @@ def check_possible_move(currState, column):
         return False
     # Check if column is already full, then add the piece
     row = 0
-    if currState[0][column] != "E":
+    if currState[0][column] != " ":
         #print(f"Column Full")
         return False
     return True
@@ -42,7 +42,7 @@ def check_state_win(state):
     for r in range(ROWS):
         for c in range(COLS):
             player = state[r][c]
-            if player == "E":
+            if player == " ":
                 continue
 
             for dr, dc in directions:
@@ -64,16 +64,16 @@ def add_piece(color, column, currState):
         return 0
     # Check if column is already full, then add the piece
     row = 0
-    if currState[0][column] != "E":
+    if currState[0][column] != " ":
         #print(f"Column Full")
         return 0
     else:
         # Find row for available spot
-        if currState[5][column] == "E":
+        if currState[5][column] == " ":
             row = 5
         else:
             for i in range(1, 6):
-                if currState[i][column] != "E":
+                if currState[i][column] != " ":
                     row = i - 1
                     break
     new_row = currState[row][0:column] + (color,) + currState[row][column+1:]
@@ -84,11 +84,11 @@ def add_piece(color, column, currState):
 def generate_possible_moves(gameState):
     moves = []
     for col in range(7):
-        if gameState[0][col] != 'E':
+        if gameState[0][col] != ' ':
             continue
         else:
             for row in range(5, -1, -1):
-                if gameState[row][col] == 'E':
+                if gameState[row][col] == ' ':
                     moves.append(col)
                     break
     return moves
@@ -114,7 +114,7 @@ def minimax(state, depth, is_maximizing_player):
         return 0
     elif state in saved_states:
         return saved_states[state]
-    elif depth == 8:
+    elif depth == 6:
         return 1
      
     if is_maximizing_player:
@@ -124,6 +124,7 @@ def minimax(state, depth, is_maximizing_player):
                 new_state = add_piece('B', move, state)
                 score = minimax(new_state, depth+1, False)
                 best_score = max(best_score, score)
+            saved_states[state] = best_score
             return best_score
     else:
             best_score = math.inf
