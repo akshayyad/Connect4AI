@@ -1,4 +1,5 @@
 import pandas as pd
+import solver
 
 def create_empty_game_state():
     return (
@@ -9,6 +10,7 @@ def create_empty_game_state():
         ("E", "E", "E", "E", "E", "E", "E"), 
         ("E", "E", "E", "E", "E", "E", "E")
     )
+
 
 def add_piece(color, column, currState):
     # Check Valid Column Input
@@ -62,17 +64,9 @@ def print_state(state):
         print(state[i])
 
 
-    
-
-# ("E", "E", "E", "E", "E", "E", "E"), 
-# ("E", "E", "E", "E", "E", "E", "E"), 
-# ("E", "E", "E", "E", "E", "E", "E"), 
-# ("E", "E", "E", "E", "E", "E", "E"), 
-# ("E", "E", "E", "E", "E", "E", "E"), 
-# ("E", "E", "E", "E", "E", "E", "E")
-
 def single_player():
     pass
+
 
 def two_player(first_color, second_color):
     gameState = create_empty_game_state()
@@ -130,3 +124,10 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ("E", "E", "E", "E", "E", "E", "E"), 
+# ("E", "E", "E", "E", "E", "E", "E"), 
+# ("E", "E", "E", "E", "E", "E", "E"), 
+# ("E", "E", "E", "E", "E", "E", "E"), 
+# ("E", "E", "E", "E", "E", "E", "E"), 
+# ("E", "E", "E", "E", "E", "E", "E")
