@@ -1,15 +1,37 @@
 import pandas as pd
+import math
+import time
 
 
 def create_empty_game_state():
     return (
-        ("E", "E", "E", "R", "E", "E", "E"), 
-        ("E", "E", "E", "B", "E", "E", "E"), 
-        ("E", "E", "E", "R", "E", "E", "E"), 
-        ("E", "E", "E", "B", "E", "E", "E"), 
-        ("E", "E", "E", "R", "E", "E", "E"), 
-        ("E", "E", "E", "B", "E", "E", "E")
+        ("E", "E", "E", "E", "E", "E", "E"), 
+        ("E", "E", "E", "E", "E", "E", "E"), 
+        ("E", "E", "E", "E", "E", "E", "E"), 
+        ("E", "E", "E", "E", "E", "E", "E"), 
+        ("E", "E", "E", "E", "E", "E", "E"), 
+        ("E", "E", "E", "E", "E", "E", "E")
     )
+
+
+def check_state_draw(state):
+    for r in range(6):
+        for c in range(7):
+            if state[r][c] == 'E':
+                return False
+    return True
+
+
+def check_possible_move(currState, column):
+    # Check Valid Column Input
+    if column >= len(currState[0]):
+        return False
+    # Check if column is already full, then add the piece
+    row = 0
+    if currState[0][column] != "E":
+        #print(f"Column Full")
+        return False
+    return True
 
 
 def check_state_win(state):
@@ -69,7 +91,6 @@ def generate_possible_moves(gameState):
                 if gameState[row][col] == 'E':
                     moves.append(col)
                     break
-    print(moves)
     return moves
 
 
@@ -77,6 +98,100 @@ def print_state(state):
     for i in range(6):
         print(state[i])
 
+saved_states = {}
 
-empty = create_empty_game_state()
-generate_possible_moves(empty)
+
+# empty = create_empty_game_state()
+# generate_possible_moves(empty)
+
+
+def minimax(state, depth, is_maximizing_player):
+    if check_state_win(state) == 1:
+        return 10 - depth
+    elif check_state_win(state) == 2:
+        return depth - 10
+    elif check_state_draw(state):
+        return 0
+    elif state in saved_states:
+        return saved_states[state]
+    elif depth == 8:
+        return 1
+     
+    if is_maximizing_player:
+            best_score = -math.inf
+            possible_moves = generate_possible_moves(state)
+            for move in possible_moves:
+                new_state = add_piece('B', move, state)
+                score = minimax(new_state, depth+1, False)
+                best_score = max(best_score, score)
+            return best_score
+    else:
+            best_score = math.inf
+            enemy_possible_moves = generate_possible_moves(state)
+            for move in enemy_possible_moves:
+                next_state = add_piece('R', move, state)
+                score = minimax(next_state, depth+1, True)
+                best_score = min(best_score, score)
+            saved_states[state] = best_score
+            return best_score
+
+
+# Assume AI is Blue and Goes First
+def findBestMove(state):
+    best_val = -math.inf
+    best_move = -1
+    possible_moves = generate_possible_moves(state)
+    for move in possible_moves:
+        new_state = add_piece('B', move, state)
+        move_val = minimax(new_state, 0, False)
+
+        if move_val > best_val:
+            best_val = move_val
+            best_move = move
+    
+    return best_move
+
+    
+def main():
+    state = create_empty_game_state()
+
+    while not (check_state_win(state) != 0) or (check_state_draw(state)):
+        # Computer's Turn
+        start_time = time.perf_counter()
+        ai_move = findBestMove(state)
+        end_time = time.perf_counter()
+        elapsed_time = end_time - start_time
+        print(f"AI Found Move in {elapsed_time:.6f} seconds")
+        state = add_piece('B', ai_move, state)
+        print_state(state)
+        if check_state_win(state) == 1:
+            print("AI Wins")
+            break
+        elif check_state_draw(state):
+            print("Game ends in Draw")
+            break
+
+        # Human's Turn
+        while True:
+            try:
+                user_move = int(input("Enter Column Value (1-7) To Place Piece Into: "))
+                move_result = add_piece('R', user_move-1, state)
+                if move_result == 0:
+                    print("Invalid move. Try again")
+                else:
+                    state = move_result
+                    break
+            except ValueError:
+                print("Invalid input. Please enter numbers.")
+        print_state(state)
+        if check_state_win(state) == 2:
+            print("Human Wins")
+            break
+        elif check_state_draw(state):
+            print("Game ends in Draw")
+            break
+
+
+if __name__ == "__main__":
+    main()
+
