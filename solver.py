@@ -35,7 +35,7 @@ def check_possible_move(currState, column):
 
 
 def check_state_win(state):
-    # Check if there is a 4 in a row in any orientation for Blue or Red
+    # Check if there is a 4 in a row in any orientation for Yellow or Red
     ROWS, COLS = 6, 7
     directions = [(0,1), (1,0), (1,1), (1,-1)]  # right, down, down-right, down-left
     
@@ -54,7 +54,7 @@ def check_state_win(state):
                     else:
                         break
                 if count == 4:
-                    return 1 if player == "B" else 2
+                    return 1 if player == 'Y' else 2
     return 0
 
 
@@ -94,6 +94,17 @@ def generate_possible_moves(gameState):
     return moves
 
 
+def count_empty_spots(gameState):
+    count = 0
+    for col in range(7):
+        for row in range(6):
+            if gameState[row][col] == ' ':
+                count += 1
+            else:
+                break
+    return count
+
+
 def print_state(state):
     for i in range(6):
         print(state[i])
@@ -105,7 +116,7 @@ saved_states = {}
 # generate_possible_moves(empty)
 
 
-def minimax(state, depth, is_maximizing_player):
+def minimax(state, depth, alpha, beta, is_maximizing_player):
     if check_state_win(state) == 1:
         return 10 - depth
     elif check_state_win(state) == 2:
@@ -114,16 +125,20 @@ def minimax(state, depth, is_maximizing_player):
         return 0
     elif state in saved_states:
         return saved_states[state]
-    elif depth == 6:
-        return 1
+    elif depth == 10:
+        if count_empty_spots(state) > depth:
+            return 1
      
     if is_maximizing_player:
             best_score = -math.inf
             possible_moves = generate_possible_moves(state)
             for move in possible_moves:
-                new_state = add_piece('B', move, state)
-                score = minimax(new_state, depth+1, False)
+                new_state = add_piece('Y', move, state)
+                score = minimax(new_state, depth+1, alpha, beta, False)
                 best_score = max(best_score, score)
+                alpha = max(alpha, score)
+                if beta <= alpha:
+                    break
             saved_states[state] = best_score
             return best_score
     else:
@@ -131,20 +146,24 @@ def minimax(state, depth, is_maximizing_player):
             enemy_possible_moves = generate_possible_moves(state)
             for move in enemy_possible_moves:
                 next_state = add_piece('R', move, state)
-                score = minimax(next_state, depth+1, True)
+                score = minimax(next_state, depth+1, alpha, beta, True)
                 best_score = min(best_score, score)
+                beta = min(beta, score)
+                if beta <= alpha:
+                    break
             saved_states[state] = best_score
             return best_score
 
 
-# Assume AI is Blue and Goes First
+# Assume AI is Yellow and Goes First
 def findBestMove(state):
+    saved_states.clear()
     best_val = -math.inf
     best_move = -1
     possible_moves = generate_possible_moves(state)
     for move in possible_moves:
-        new_state = add_piece('B', move, state)
-        move_val = minimax(new_state, 0, False)
+        new_state = add_piece('Y', move, state)
+        move_val = minimax(new_state, 0, -math.inf, math.inf, False)
 
         if move_val > best_val:
             best_val = move_val
@@ -155,7 +174,7 @@ def findBestMove(state):
     
 def main():
     state = create_empty_game_state()
-
+    quit = False
     while not (check_state_win(state) != 0) or (check_state_draw(state)):
         # Computer's Turn
         start_time = time.perf_counter()
@@ -163,7 +182,7 @@ def main():
         end_time = time.perf_counter()
         elapsed_time = end_time - start_time
         print(f"AI Found Move in {elapsed_time:.6f} seconds")
-        state = add_piece('B', ai_move, state)
+        state = add_piece('Y', ai_move, state)
         print_state(state)
         if check_state_win(state) == 1:
             print("AI Wins")
@@ -176,6 +195,10 @@ def main():
         while True:
             try:
                 user_move = int(input("Enter Column Value (1-7) To Place Piece Into: "))
+                if user_move == 0:
+                    print("Thank you for playing\n")
+                    quit = True
+                    break
                 move_result = add_piece('R', user_move-1, state)
                 if move_result == 0:
                     print("Invalid move. Try again")
@@ -184,6 +207,8 @@ def main():
                     break
             except ValueError:
                 print("Invalid input. Please enter numbers.")
+        if quit:
+            break
         print_state(state)
         if check_state_win(state) == 2:
             print("Human Wins")
@@ -195,4 +220,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+    #pass
+
+# empty = create_empty_game_state()
+# print(count_empty_spots(empty))
 
