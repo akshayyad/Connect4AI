@@ -3,6 +3,69 @@ import math
 import time
 
 
+import numpy as np
+
+ROWS = 6
+COLS = 7
+
+def evaluate_window(window, piece, opp_piece):
+    """Score a 4-cell window for its value."""
+    score = 0
+    piece_count = window.count(piece)
+    opp_count = window.count(opp_piece)
+    empty_count = window.count(" ")
+
+    if piece_count == 4:
+        score += 100000
+    elif piece_count == 3 and empty_count == 1:
+        score += 100
+    elif piece_count == 2 and empty_count == 2:
+        score += 10
+
+    if opp_count == 3 and empty_count == 1:
+        score -= 80
+    elif opp_count == 2 and empty_count == 2:
+        score -= 5
+
+    return score
+
+
+def evaluate_board(board, ai_piece="Y", opp_piece="R"):
+    """Evaluate the board for heuristic strength."""
+    score = 0
+    b = np.array(board)
+
+    # Center column preference
+    center_col = [b[r][COLS // 2] for r in range(ROWS)]
+    score += center_col.count(ai_piece) * 3
+
+    # Horizontal
+    for r in range(ROWS):
+        row_array = list(b[r, :])
+        for c in range(COLS - 3):
+            window = row_array[c:c+4]
+            score += evaluate_window(window, ai_piece, opp_piece)
+
+    # Vertical
+    for c in range(COLS):
+        col_array = list(b[:, c])
+        for r in range(ROWS - 3):
+            window = col_array[r:r+4]
+            score += evaluate_window(window, ai_piece, opp_piece)
+
+    # Diagonals
+    for r in range(ROWS - 3):
+        for c in range(COLS - 3):
+            # Positive slope
+            window = [b[r+i][c+i] for i in range(4)]
+            score += evaluate_window(window, ai_piece, opp_piece)
+            # Negative slope
+            window = [b[r+3-i][c+i] for i in range(4)]
+            score += evaluate_window(window, ai_piece, opp_piece)
+
+    return score
+
+
 def create_empty_game_state():
     return (
         (" ", " ", " ", " ", " ", " ", " "), 
@@ -105,6 +168,10 @@ def count_empty_spots(gameState):
     return count
 
 
+def assign_score(gameState, ):
+    pass
+
+
 def print_state(state):
     for i in range(6):
         print(state[i])
@@ -118,21 +185,21 @@ saved_states = {}
 
 def minimax(state, depth, alpha, beta, is_maximizing_player):
     if check_state_win(state) == 1:
-        return 10 - depth
+        return 1000000 - depth  # big reward for fast win
     elif check_state_win(state) == 2:
-        return depth - 10
+        return -1000000 + depth  # big penalty for losing
     elif check_state_draw(state):
         return 0
     elif state in saved_states:
         return saved_states[state]
-    elif depth == 10:
-        if count_empty_spots(state) > depth:
-            return 1
+    if depth == 8:
+        return evaluate_board(state, ai_piece='Y', opp_piece='R')
      
     if is_maximizing_player:
             best_score = -math.inf
             possible_moves = generate_possible_moves(state)
-            for move in possible_moves:
+            while len(possible_moves) > 0:
+                move = possible_moves.pop(len(possible_moves)//2)
                 new_state = add_piece('Y', move, state)
                 score = minimax(new_state, depth+1, alpha, beta, False)
                 best_score = max(best_score, score)
@@ -144,7 +211,8 @@ def minimax(state, depth, alpha, beta, is_maximizing_player):
     else:
             best_score = math.inf
             enemy_possible_moves = generate_possible_moves(state)
-            for move in enemy_possible_moves:
+            while len(enemy_possible_moves) > 0:
+                move = enemy_possible_moves.pop(len(enemy_possible_moves)//2)
                 next_state = add_piece('R', move, state)
                 score = minimax(next_state, depth+1, alpha, beta, True)
                 best_score = min(best_score, score)
@@ -161,7 +229,8 @@ def findBestMove(state):
     best_val = -math.inf
     best_move = -1
     possible_moves = generate_possible_moves(state)
-    for move in possible_moves:
+    while len(possible_moves) > 0:
+        move = possible_moves.pop(len(possible_moves)//2)
         new_state = add_piece('Y', move, state)
         move_val = minimax(new_state, 0, -math.inf, math.inf, False)
 
@@ -184,6 +253,7 @@ def main():
         print(f"AI Found Move in {elapsed_time:.6f} seconds")
         state = add_piece('Y', ai_move, state)
         print_state(state)
+        print(f"Adding move to column: {ai_move+1}")
         if check_state_win(state) == 1:
             print("AI Wins")
             break
