@@ -13,11 +13,29 @@ const int ROWS = 6;
 const int COLS = 7;
 const int FULL = 42;
 
+
+struct Board {
+    uint64_t player;
+    uint64_t entireBoard;
+};
+
+
 std::array<char, 42> create_empty_game_state() {
     std::array<char, FULL> board = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                     ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                     ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                     ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                    ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                    ' ', ' ', ' ', ' ', ' ', ' ', ' '};
+    return board;         
+}
+
+
+std::array<char, 42> create_game_state() {
+    std::array<char, FULL> board = {' ', ' ', ' ', ' ', ' ', ' ', 'P', 
+                                    ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                    ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                    ' ', ' ', 'P', 'P', 'P', 'P', ' ', 
                                     ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                     ' ', ' ', ' ', ' ', ' ', ' ', ' '};
     return board;         
@@ -32,15 +50,15 @@ uint64_t create_empty_bitboard() {
     std::cout << "Binary representation of " << empty << ": ";
     for (int i = numBits - 1; i >= 0; --i) {
         // Create a mask with a single '1' at the current bit position
-        unsigned int mask = (1U << i);
+        unsigned int mask = (1ULL << i);
         // Check if the bit is set
         if ((empty & mask) != 0) {
             std::cout << "1";
         } else {
             std::cout << "0";
         }
-        // Optional: Add a space every 8 bits for readability
-        if (i > 0 && i % 8 == 0) {
+        // Optional: Add a space every 7 bits for readability
+        if (i > 0 && i % 7 == 0) {
             std::cout << " ";
         }
     }
@@ -51,11 +69,43 @@ uint64_t create_empty_bitboard() {
 
 uint64_t convert_to_bitboard(std::array<char, 42> board, char player) {
     int bitposition = 0;
+    std::vector<int> bits;
+    for (int i = 0; i < COLS; i++) {
+        for (int j = ROWS-1; j >= 0; j--) {
+            int position = (7 * j) + i;
+            if (board[position] == player) {
+                bits.push_back(1);
+            } else {
+                bits.push_back(0);
+            }
+        }
+        bits.push_back(0);
+    }
+    //std::reverse(bits.begin(), bits.end());
     
+    // std::cout << "Printing the convert_to_bitboard() result: " << std::endl;
+    // for (auto bit : bits) {
+    //     std::cout << bit;
+    // }
+    // std::cout << std::endl;
+
+    uint64_t bitboard = 0ULL;
+    for (int i = 0; i < bits.size(); i++) {
+        if (bits[i]) {
+            bitboard |= (1ULL << i);
+        }
+    }
+
+    // Used for printing the bit values from the uint itself
+    // std::cout << "Bitboard (LSB to MSB): ";
+    // for (int i = 48; i >= 0; --i) {  // only print 49 bits
+    //     uint64_t mask = 1ULL << i;
+    //     std::cout << ((bitboard & mask) ? '1' : '0');
+    //     if (i % 7 == 0) std::cout << " ";
+    // }
+    // std::cout << "\n";
     
-    
-    
-    return 0;
+    return bitboard;
 }
 
 
@@ -63,7 +113,6 @@ void print_bitboard(uint64_t bitboard) {
     char representation[6][7];
     std::vector<int> bits;
     for (int i = 0; i < 49; i++) {
-        if (i != 0 && i % 7 == 0) {std::cout << " ";}
         uint64_t mask = 1ULL << i;
         bits.push_back((bitboard & mask) ? 1 : 0);
     }
@@ -182,7 +231,7 @@ int check_game_state(const std::array<char, 42>& board) {
 
 
 int main() {
-    //std::array<char, 42> empty_board = create_empty_game_state();
+    std::array<char, 42> empty_board = create_empty_game_state();
     //print_state(empty_board);
     //std::vector<int> moves = generate_possible_moves(empty_board);
     //std::array<char, 42> new_state = add_piece(empty_board, 6, 'R');
@@ -190,8 +239,12 @@ int main() {
     //int result = check_game_state(empty_board);
     //std::cout << "Result: " << result;
 
-    uint64_t emp = create_empty_bitboard();
-    print_bitboard(emp);
+    //uint64_t emp = create_empty_bitboard();
+    //print_bitboard(emp);
+    uint64_t bitboard = convert_to_bitboard(empty_board, 'P');
+    std::cout << std::endl;
+
+    print_bitboard(bitboard);
     return 0;
 }
 
