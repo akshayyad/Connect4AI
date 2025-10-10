@@ -13,6 +13,7 @@ const int ROWS = 6;
 const int COLS = 7;
 const int FULL = 42;
 const uint64_t DRAW_MASK = 279258638311359;
+const uint64_t TOP_MASK = 141845657554976;
 
 
 struct Board {
@@ -33,13 +34,24 @@ std::array<char, 42> create_empty_game_state() {
 
 
 std::array<char, 42> create_game_state() {
-    std::array<char, FULL> board = {' ', ' ', 'P', ' ', ' ', 'P', 'P', 
+    std::array<char, FULL> board = {'P', 'P', 'P', ' ', ' ', 'P', 'P', 
                                     ' ', ' ', ' ', 'P', ' ', ' ', 'P', 
                                     'P', ' ', ' ', ' ', 'P', ' ', ' ', 
                                     ' ', 'P', ' ', ' ', ' ', 'P', ' ', 
                                     ' ', ' ', ' ', ' ', ' ', 'P', ' ', 
                                     ' ', ' ', ' ', 'P', ' ', ' ', 'P'};
     return board;         
+}
+
+
+void print_bits_in_uint(uint64_t bitboard) {
+    std::cout << "Bitboard (LSB to MSB): ";
+    for (int i = 48; i >= 0; --i) {  // only print 49 bits
+        uint64_t mask = 1ULL << i;
+        std::cout << ((bitboard & mask) ? '1' : '0');
+        if (i % 7 == 0) std::cout << " ";
+    }
+    std::cout << "\n";
 }
 
 
@@ -62,14 +74,16 @@ uint64_t get_draw_num() {
 }
 
 
-void print_bits_in_uint(uint64_t bitboard) {
-    std::cout << "Bitboard (LSB to MSB): ";
-    for (int i = 48; i >= 0; --i) {  // only print 49 bits
-        uint64_t mask = 1ULL << i;
-        std::cout << ((bitboard & mask) ? '1' : '0');
-        if (i % 7 == 0) std::cout << " ";
+uint64_t get_top_mask() {
+    uint64_t topMask = 0ULL;
+    for (int i = 0; i < 7; i++) {
+        uint64_t m = 1ULL << ((7 * i) + 5);
+        topMask |= m;
     }
-    std::cout << "\n";
+    std::cout << "Top Mask Number: " << topMask << std::endl;
+    print_bits_in_uint(topMask);
+
+    return topMask;
 }
 
 
@@ -287,6 +301,18 @@ int check_win(uint64_t bitboard) {
 }
 
 
+std::vector<int> get_available_moves(uint64_t bitboard) {
+    std::vector<int> moves;
+    uint64_t m = 1ULL << 5;
+    for (int i = 0; i < 7; i++) {
+        if ((m & bitboard) == 0) moves.push_back(i);
+        m = m << 7;
+    }
+
+    return moves;
+}
+
+
 void shift_testing(uint64_t bitboard) {
     // Left Shift 7 is to the right
     // Left Shift 1 is up
@@ -294,7 +320,7 @@ void shift_testing(uint64_t bitboard) {
     // Left Shift 6 is Down-Right
     print_bits_in_uint(bitboard);
     print_bitboard(bitboard);
-    uint64_t firstShift = bitboard << 8;
+    uint64_t firstShift = bitboard >> 1;
     print_bits_in_uint(firstShift);
     print_bitboard(firstShift);
 
@@ -319,9 +345,13 @@ int main() {
     std::cout << std::endl;
 
     //shift_testing(bitboard);
+    //print_bitboard(bitboard);
+    //get_available_moves(bitboard);
 
-    print_bitboard(bitboard);
-    std::cout << "Result: " << check_win(bitboard) << std::endl;
+    get_top_mask();
+
+    
+    // std::cout << "Result: " << check_win(bitboard) << std::endl;
     return 0;
 }
 
