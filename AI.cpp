@@ -15,6 +15,14 @@ const int COLS = 7;
 const int FULL = 42;
 const uint64_t DRAW_MASK = 279258638311359;
 const uint64_t TOP_MASK = 141845657554976;
+const uint64_t COL_MASKS[7] = {63, 8064, 1032192, 132120576, 
+                               16911433728, 2164663517184, 277076930199552};
+constexpr uint64_t bottom_mask(int col) {
+    return 1ULL << (col * 7);
+}
+constexpr uint64_t column_mask(int col) {
+    return 0x3FULL << (col * 7);
+}
 
 
 struct Board {
@@ -35,12 +43,12 @@ std::array<char, 42> create_empty_game_state() {
 
 
 std::array<char, 42> create_game_state() {
-    std::array<char, FULL> board = {'P', 'P', 'P', ' ', ' ', 'P', 'P', 
-                                    ' ', ' ', ' ', 'P', ' ', ' ', 'P', 
-                                    'P', ' ', ' ', ' ', 'P', ' ', ' ', 
-                                    ' ', 'P', ' ', ' ', ' ', 'P', ' ', 
-                                    ' ', ' ', ' ', ' ', ' ', 'P', ' ', 
-                                    ' ', ' ', ' ', 'P', ' ', ' ', 'P'};
+    std::array<char, FULL> board = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                    ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
+                                    ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
+                                    'P', ' ', ' ', 'P', ' ', ' ', ' ', 
+                                    'P', ' ', ' ', 'P', ' ', ' ', 'P', 
+                                    'P', 'P', ' ', 'P', ' ', 'P', 'P'};
     return board;         
 }
 
@@ -85,6 +93,23 @@ uint64_t get_top_mask() {
     print_bits_in_uint(topMask);
 
     return topMask;
+}
+
+
+uint64_t get_column_masks() {
+    // uint64_t masks[7];
+    // uint64_t colMask = 63;
+    
+    // for (int i = 0; i < 7; i++) {
+    //     uint64_t m = colMask << 7*i;
+    //     masks[i] = m;
+    // }
+    for (auto mask : COL_MASKS) {
+        print_bits_in_uint(mask);
+        std::cout << "ColMask: " << mask << "\n\n";
+    }
+    
+    return 0;
 }
 
 
@@ -313,11 +338,25 @@ std::vector<int> get_available_moves(uint64_t bitboard) {
         moves.push_back(col);
         open &= (open - 1);                     // clear the lowest set bit
     }
-    for (auto move : moves) {
-        std::cout << move << " ";
-    }
-    std::cout << std::endl;
     return moves;
+}
+
+
+uint64_t add_piece(uint64_t bitboard, int col) {
+    print_bitboard(bitboard);
+    print_bits_in_uint(bitboard);
+    
+    uint64_t first = bitboard & column_mask(col);
+    print_bits_in_uint(first);
+
+    uint64_t sec = first + bottom_mask(col);
+    print_bits_in_uint(sec);
+
+    uint64_t final = bitboard | sec;
+    print_bitboard(final);
+    print_bits_in_uint(final);
+
+    return 0;
 }
 
 
@@ -350,11 +389,16 @@ int main() {
     //uint64_t emp = create_empty_bitboard();
     //print_bitboard(emp);
     uint64_t bitboard = convert_to_bitboard(board, 'P');
-    std::cout << std::endl;
+    // std::cout << std::endl;
 
     //shift_testing(bitboard);
-    print_bitboard(bitboard);
-    get_available_moves(bitboard);
+    // print_bitboard(bitboard);
+    // get_available_moves(bitboard);
+
+    add_piece(bitboard, 6);
+    //get_column_masks();
+    // std::cout << bottom_mask(1) << "\n";
+    // std::cout << column_mask(1) << "\n";
 
     
     // std::cout << "Result: " << check_win(bitboard) << std::endl;
