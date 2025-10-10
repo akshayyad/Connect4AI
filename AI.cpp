@@ -342,21 +342,21 @@ std::vector<int> get_available_moves(uint64_t bitboard) {
 }
 
 
-uint64_t add_piece(uint64_t bitboard, int col) {
-    print_bitboard(bitboard);
-    print_bits_in_uint(bitboard);
+inline uint64_t add_piece(uint64_t bitboard, int col) {
+    // print_bitboard(bitboard);
+    // print_bits_in_uint(bitboard);
     
-    uint64_t first = bitboard & column_mask(col);
-    print_bits_in_uint(first);
+    // uint64_t first = bitboard & column_mask(col);
+    // print_bits_in_uint(first);
 
-    uint64_t sec = first + bottom_mask(col);
-    print_bits_in_uint(sec);
+    // uint64_t sec = first + bottom_mask(col);
+    // print_bits_in_uint(sec);
 
-    uint64_t final = bitboard | sec;
-    print_bitboard(final);
-    print_bits_in_uint(final);
+    // uint64_t final = bitboard | sec;
+    // print_bitboard(final);
+    // print_bits_in_uint(final);
 
-    return 0;
+    return bitboard | ((bitboard & column_mask(col)) + bottom_mask(col));
 }
 
 
@@ -395,7 +395,8 @@ int main() {
     // print_bitboard(bitboard);
     // get_available_moves(bitboard);
 
-    add_piece(bitboard, 6);
+    uint64_t edited = add_piece(bitboard, 4);
+
     //get_column_masks();
     // std::cout << bottom_mask(1) << "\n";
     // std::cout << column_mask(1) << "\n";
