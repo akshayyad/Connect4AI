@@ -33,12 +33,12 @@ std::array<char, 42> create_empty_game_state() {
 
 
 std::array<char, 42> create_game_state() {
-    std::array<char, FULL> board = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                    ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                    ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                    ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
-                                    ' ', ' ', 'P', 'P', 'P', ' ', ' ', 
-                                    ' ', ' ', 'P', 'P', 'P', 'P', ' '};
+    std::array<char, FULL> board = {' ', ' ', 'P', ' ', ' ', 'P', 'P', 
+                                    ' ', ' ', ' ', 'P', ' ', ' ', 'P', 
+                                    'P', ' ', ' ', ' ', 'P', ' ', ' ', 
+                                    ' ', 'P', ' ', ' ', ' ', 'P', ' ', 
+                                    ' ', ' ', ' ', ' ', ' ', 'P', ' ', 
+                                    ' ', ' ', ' ', 'P', ' ', ' ', 'P'};
     return board;         
 }
 
@@ -59,6 +59,17 @@ uint64_t get_draw_num() {
     std::cout << "\n";
 
     return drawNum;
+}
+
+
+void print_bits_in_uint(uint64_t bitboard) {
+    std::cout << "Bitboard (LSB to MSB): ";
+    for (int i = 48; i >= 0; --i) {  // only print 49 bits
+        uint64_t mask = 1ULL << i;
+        std::cout << ((bitboard & mask) ? '1' : '0');
+        if (i % 7 == 0) std::cout << " ";
+    }
+    std::cout << "\n";
 }
 
 
@@ -251,8 +262,45 @@ int check_game_state(const std::array<char, 42>& board) {
 
 
 int check_draw(uint64_t bitboard) {
-    if (DRAW_MASK ^ bitboard == 0) return 1;
-    else return 0;
+    return (bitboard & DRAW_MASK) == DRAW_MASK;
+}
+
+
+int check_win(uint64_t bitboard) {
+    // Check for Horizontal Win
+    uint64_t m = bitboard & (bitboard << 7);
+    if ( (m & (m << 14)) != 0) return 1;
+
+    // Check for Vertical Win
+    m = bitboard & (bitboard << 1);
+    if ( (m & (m << 2)) != 0) return 1;
+
+    // Check for Up-Right Win
+    m = bitboard & (bitboard << 8);
+    if ( (m & (m << 16)) != 0) return 1;
+
+    // Check for Down-Right Win
+    m = bitboard & (bitboard << 6);
+    if ( (m & (m << 12)) != 0) return 1;
+
+    return 0;
+}
+
+
+void shift_testing(uint64_t bitboard) {
+    // Left Shift 7 is to the right
+    // Left Shift 1 is up
+    // Left Shift 8 is Up-Right
+    // Left Shift 6 is Down-Right
+    print_bits_in_uint(bitboard);
+    print_bitboard(bitboard);
+    uint64_t firstShift = bitboard << 8;
+    print_bits_in_uint(firstShift);
+    print_bitboard(firstShift);
+
+    // uint64_t result = firstShift & (firstShift << 2);
+    // print_bits_in_uint(result);
+    // print_bitboard(result);
 }
 
 
@@ -270,7 +318,10 @@ int main() {
     uint64_t bitboard = convert_to_bitboard(board, 'P');
     std::cout << std::endl;
 
+    //shift_testing(bitboard);
+
     print_bitboard(bitboard);
+    std::cout << "Result: " << check_win(bitboard) << std::endl;
     return 0;
 }
 
