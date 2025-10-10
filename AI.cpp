@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <bitset>
 #include <algorithm>
+#include <bit>
 
 
 const int ROWS = 6;
@@ -303,12 +304,19 @@ int check_win(uint64_t bitboard) {
 
 std::vector<int> get_available_moves(uint64_t bitboard) {
     std::vector<int> moves;
-    uint64_t m = 1ULL << 5;
-    for (int i = 0; i < 7; i++) {
-        if ((m & bitboard) == 0) moves.push_back(i);
-        m = m << 7;
+    moves.reserve(7);
+    
+    uint64_t open = ~bitboard & TOP_MASK;
+    while (open) {
+        int bit_index = std::countr_zero(open); // position of least significant 1
+        int col = bit_index / 7;                // each column has 7 bits
+        moves.push_back(col);
+        open &= (open - 1);                     // clear the lowest set bit
     }
-
+    for (auto move : moves) {
+        std::cout << move << " ";
+    }
+    std::cout << std::endl;
     return moves;
 }
 
@@ -345,10 +353,8 @@ int main() {
     std::cout << std::endl;
 
     //shift_testing(bitboard);
-    //print_bitboard(bitboard);
-    //get_available_moves(bitboard);
-
-    get_top_mask();
+    print_bitboard(bitboard);
+    get_available_moves(bitboard);
 
     
     // std::cout << "Result: " << check_win(bitboard) << std::endl;
