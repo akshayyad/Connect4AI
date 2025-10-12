@@ -343,19 +343,6 @@ std::vector<int> get_available_moves(uint64_t bitboard) {
 
 
 inline uint64_t add_piece(uint64_t bitboard, int col) {
-    // print_bitboard(bitboard);
-    // print_bits_in_uint(bitboard);
-    
-    // uint64_t first = bitboard & column_mask(col);
-    // print_bits_in_uint(first);
-
-    // uint64_t sec = first + bottom_mask(col);
-    // print_bits_in_uint(sec);
-
-    // uint64_t final = bitboard | sec;
-    // print_bitboard(final);
-    // print_bits_in_uint(final);
-
     return bitboard | ((bitboard & column_mask(col)) + bottom_mask(col));
 }
 
