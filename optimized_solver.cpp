@@ -8,6 +8,7 @@
 #include <bitset>
 #include <algorithm>
 #include <bit>
+#include <unordered_map>
 
 
 const int ROWS = 6;
@@ -27,7 +28,25 @@ constexpr uint64_t column_mask(int col) {
 struct Board {
     uint64_t player;
     uint64_t combined;
+    bool operator==(const Board &other) const noexcept { 
+        return player == other.player && combined == other.combined;
+    }
 };
+
+
+template<>
+struct std::hash<Board>
+{
+    std::size_t operator()(const Board& board) const noexcept
+    {
+        std::size_t h1 = std::hash<uint64_t>{}(board.player);
+        std::size_t h2 = std::hash<uint64_t>{}(board.combined);
+        return h1 ^ h2;
+    }
+};
+
+
+std::unordered_map<Board, int> seen_states;
 
 
 std::array<char, 42> create_empty_game_state() {
@@ -141,37 +160,37 @@ void print_bitboard(uint64_t bitboard) {
 }
 
 
-int check_draw(uint64_t bitboard) {
-    return (bitboard & DRAW_MASK) == DRAW_MASK;
+inline int check_draw(Board board) {
+    return (board.combined & DRAW_MASK) == DRAW_MASK;
 }
 
 
-int check_win(uint64_t bitboard) {
+inline int check_win(Board board) {
     // Check for Horizontal Win
-    uint64_t m = bitboard & (bitboard << 7);
+    uint64_t m = board.player & (board.player << 7);
     if ( (m & (m << 14)) != 0) return 1;
 
     // Check for Vertical Win
-    m = bitboard & (bitboard << 1);
+    m = board.player & (board.player << 1);
     if ( (m & (m << 2)) != 0) return 1;
 
     // Check for Up-Right Win
-    m = bitboard & (bitboard << 8);
+    m = board.player & (board.player << 8);
     if ( (m & (m << 16)) != 0) return 1;
 
     // Check for Down-Right Win
-    m = bitboard & (bitboard << 6);
+    m = board.player & (board.player << 6);
     if ( (m & (m << 12)) != 0) return 1;
 
     return 0;
 }
 
 
-std::vector<int> get_available_moves(uint64_t bitboard) {
+std::vector<int> get_available_moves(Board bitboard) {
     std::vector<int> moves;
     moves.reserve(7);
     
-    uint64_t open = ~bitboard & TOP_MASK;
+    uint64_t open = ~bitboard.combined & TOP_MASK;
     while (open) {
         int bit_index = std::countr_zero(open); // position of least significant 1
         int col = bit_index / 7;                // each column has 7 bits
@@ -182,17 +201,106 @@ std::vector<int> get_available_moves(uint64_t bitboard) {
 }
 
 
-inline uint64_t add_piece(uint64_t bitboard, int col) {
-    return bitboard | ((bitboard & column_mask(col)) + bottom_mask(col));
+inline Board add_piece(Board bitboard, int col) {
+    uint64_t mask = ((bitboard.combined & column_mask(col)) + bottom_mask(col));
+    //std::cout << "Mask: " << mask << std::endl;
+    bitboard.combined |= mask;
+    bitboard.player |= mask;
+
+    return bitboard;
+}
+
+
+Board swap_sides(Board board) {
+    board.player ^= board.combined;
+    return board;
+}
+
+
+void print_board_components(Board board) {
+    std::cout << "Player: \n";
+    print_bitboard(board.player);
+    std::cout << "Combined: \n";
+    print_bitboard(board.combined);
+    std::cout << std::endl;
+}
+
+
+void print_board(Board board) {
+    print_bitboard(board.combined);
+}
+
+
+void print_seen_states() {
+    for (auto state: seen_states) {
+        std::cout << "Player: " << state.first.player << " " 
+                  << "Combined: " << state.first.combined << std::endl;
+    }
+}
+
+
+int minimax(Board board, int depth, int alpha, int beta, bool is_maximizing_player) {
+    if (check_win(board)) return 1000;
+    else if (check_win(swap_sides(board))) return -1000;
+    else if (check_draw(board)) return 5;
+    auto it = seen_states.find(board);
+    if (it != seen_states.end())
+        return it->second;
+    if (depth == 8) return 0;
+
+    if (is_maximizing_player) {
+        int best_score = -1000000;
+        std::vector<int> possible_moves = get_available_moves(board);
+        for (auto move: possible_moves) {
+            Board new_state = add_piece(board, move);
+            int score = minimax(swap_sides(new_state), depth+1, alpha, beta, false);
+            best_score = std::max(best_score, score);
+            alpha = std::max(alpha, score);
+            if (beta <= alpha) {
+                break;
+            }
+        }
+        seen_states[board] = best_score;
+        return best_score;
+    } else {
+        int best_score = 1000000;
+        std::vector<int> enemy_possible_moves = get_available_moves(board);
+        for (auto move: enemy_possible_moves) {
+            Board next_state = add_piece(board, move);
+            int score = minimax(swap_sides(next_state), depth+1, alpha, beta, true);
+            best_score = std::min(best_score, score);
+            beta = std::min(beta, score);
+            if (beta <= alpha) {
+                break;
+            }
+        }
+        seen_states[board] = best_score;
+        return best_score;
+    }
+
 }
 
 
 int main() {
-    std::array<char, 42> board = create_game_state();
+    //std::array<char, 42> empty = create_empty_game_state();
+    //uint64_t empty_bitboard = convert_to_bitboard(empty, 'P');
 
-    uint64_t bitboard = convert_to_bitboard(board, 'P');
+    Board empty_board;
+    empty_board.player = 0;
+    empty_board.combined = 0;
 
-    uint64_t edited = add_piece(bitboard, 4);
+    Board player1 = add_piece(empty_board, 4);
+    print_board_components(player1);
+
+    Board enemy1 = swap_sides(player1);
+    enemy1 = add_piece(enemy1, 4);
+    print_board_components(enemy1);
+
+
+    Board player2 = swap_sides(enemy1);
+    player2 = add_piece(player2, 4);
+    print_board_components(player2);
+    
 
     return 0;
 }
