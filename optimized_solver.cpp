@@ -165,21 +165,21 @@ inline int check_draw(Board board) {
 }
 
 
-inline int check_win(Board board) {
+inline int check_win(uint64_t player) {
     // Check for Horizontal Win
-    uint64_t m = board.player & (board.player << 7);
+    uint64_t m = player & (player << 7);
     if ( (m & (m << 14)) != 0) return 1;
 
     // Check for Vertical Win
-    m = board.player & (board.player << 1);
+    m = player & (player << 1);
     if ( (m & (m << 2)) != 0) return 1;
 
     // Check for Up-Right Win
-    m = board.player & (board.player << 8);
+    m = player & (player << 8);
     if ( (m & (m << 16)) != 0) return 1;
 
     // Check for Down-Right Win
-    m = board.player & (board.player << 6);
+    m = player & (player << 6);
     if ( (m & (m << 12)) != 0) return 1;
 
     return 0;
@@ -201,17 +201,23 @@ std::vector<int> get_available_moves(Board bitboard) {
 }
 
 
-inline Board add_piece(Board bitboard, int col) {
-    uint64_t mask = ((bitboard.combined & column_mask(col)) + bottom_mask(col));
+inline void add_piece(Board &bitboard, int col) {
+    uint64_t move = ((bitboard.combined & column_mask(col)) + bottom_mask(col));
     //std::cout << "Mask: " << mask << std::endl;
-    bitboard.combined |= mask;
-    bitboard.player |= mask;
-
-    return bitboard;
+    bitboard.combined |= move;
+    bitboard.player |= move;
 }
 
 
-Board swap_sides(Board board) {
+inline void undo_move(Board &b, int col) {
+    // clear the topmost bit of that column
+    b.combined &= ~(b.combined & column_mask(col) ? 
+                    1ULL << (std::bit_width((b.combined & column_mask(col))) - 1) : 0);
+    b.player   &= b.combined; // keep consistency
+}
+
+
+Board swap_sides(Board &board) {
     board.player ^= board.combined;
     return board;
 }
@@ -239,21 +245,24 @@ void print_seen_states() {
 }
 
 
-int minimax(Board board, int depth, int alpha, int beta, bool is_maximizing_player) {
-    if (check_win(board)) return 1000;
-    else if (check_win(swap_sides(board))) return -1000;
-    else if (check_draw(board)) return 5;
+int minimax(Board &board, int depth, int alpha, int beta, bool is_maximizing_player) {
+    if (check_win(board.player)) return 1000-depth;
+    if (check_win((board.player ^ board.combined))) return -1000+depth;
+    if (check_draw(board)) return 5;
     auto it = seen_states.find(board);
     if (it != seen_states.end())
         return it->second;
-    if (depth == 8) return 0;
+    if (depth >= 8) return 0;
 
     if (is_maximizing_player) {
         int best_score = -1000000;
         std::vector<int> possible_moves = get_available_moves(board);
         for (auto move: possible_moves) {
-            Board new_state = add_piece(board, move);
-            int score = minimax(swap_sides(new_state), depth+1, alpha, beta, false);
+            add_piece(board, move);
+            board.player ^= board.combined;
+            int score = minimax(board, depth+1, alpha, beta, false);
+            board.player ^= board.combined;
+            undo_move(board, move);
             best_score = std::max(best_score, score);
             alpha = std::max(alpha, score);
             if (beta <= alpha) {
@@ -266,8 +275,11 @@ int minimax(Board board, int depth, int alpha, int beta, bool is_maximizing_play
         int best_score = 1000000;
         std::vector<int> enemy_possible_moves = get_available_moves(board);
         for (auto move: enemy_possible_moves) {
-            Board next_state = add_piece(board, move);
-            int score = minimax(swap_sides(next_state), depth+1, alpha, beta, true);
+            add_piece(board, move);
+            board.player ^= board.combined;
+            int score = minimax(board, depth+1, alpha, beta, true);
+            board.player ^= board.combined;
+            undo_move(board, move);
             best_score = std::min(best_score, score);
             beta = std::min(beta, score);
             if (beta <= alpha) {
@@ -281,25 +293,30 @@ int minimax(Board board, int depth, int alpha, int beta, bool is_maximizing_play
 }
 
 
+void game_manager() {
+    
+}
+
+
 int main() {
     //std::array<char, 42> empty = create_empty_game_state();
     //uint64_t empty_bitboard = convert_to_bitboard(empty, 'P');
 
-    Board empty_board;
-    empty_board.player = 0;
-    empty_board.combined = 0;
+    // Board empty_board;
+    // empty_board.player = 0;
+    // empty_board.combined = 0;
 
-    Board player1 = add_piece(empty_board, 4);
-    print_board_components(player1);
+    // Board player1 = add_piece(empty_board, 4);
+    // print_board_components(player1);
 
-    Board enemy1 = swap_sides(player1);
-    enemy1 = add_piece(enemy1, 4);
-    print_board_components(enemy1);
+    // Board enemy1 = swap_sides(player1);
+    // enemy1 = add_piece(enemy1, 4);
+    // print_board_components(enemy1);
 
 
-    Board player2 = swap_sides(enemy1);
-    player2 = add_piece(player2, 4);
-    print_board_components(player2);
+    // Board player2 = swap_sides(enemy1);
+    // player2 = add_piece(player2, 4);
+    // print_board_components(player2);
     
 
     return 0;
