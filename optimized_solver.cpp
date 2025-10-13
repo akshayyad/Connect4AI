@@ -133,6 +133,28 @@ uint64_t convert_to_bitboard(std::array<char, 42> board, char player) {
 }
 
 
+Board create_board_state() {
+    std::array<char, FULL> boardcombined = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                            ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
+                                            ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
+                                            'P', ' ', ' ', 'P', ' ', ' ', ' ', 
+                                            'P', ' ', ' ', 'P', ' ', ' ', 'P', 
+                                            'P', 'P', ' ', 'P', ' ', 'P', 'P'};
+    std::array<char, FULL> boardplayer = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                          ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                          ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
+                                          ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
+                                          ' ', ' ', ' ', ' ', ' ', ' ', 'P', 
+                                          'P', ' ', ' ', 'P', ' ', 'P', ' '};
+    uint64_t combined = convert_to_bitboard(boardcombined, 'P');
+    uint64_t player = convert_to_bitboard(boardplayer, 'P');
+    Board sample;
+    sample.combined = combined;
+    sample.player = player;
+    return sample;
+}
+
+
 void print_bitboard(uint64_t bitboard) {
     char representation[6][7];
     std::vector<int> bits;
@@ -154,6 +176,62 @@ void print_bitboard(uint64_t bitboard) {
     for (int i = 0; i < ROWS; i++) {
         for (int j = 0; j < COLS; j++) {
             std::cout << '\'' << representation[i][j] << "\', ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+
+void print_both_sides(Board &b, char playerChar) {
+    char enemyChar = (playerChar == 'R') ? 'Y' : 'R';
+    uint64_t enemyPieces = b.player ^ b.combined;
+
+    char display[6][7];
+    // Fill all cells as empty
+    for (int r = 0; r < 6; ++r)
+        for (int c = 0; c < 7; ++c)
+            display[r][c] = ' ';
+
+    // Fill player pieces
+    for (int c = 0; c < 7; ++c) {
+        for (int r = 0; r < 6; ++r) {
+            int bitIndex = c * 7 + r;
+            if (b.player & (1ULL << bitIndex))
+                display[5 - r][c] = playerChar; // invert row to print top first
+        }
+    }
+
+    // Fill enemy pieces
+    for (int c = 0; c < 7; ++c) {
+        for (int r = 0; r < 6; ++r) {
+            int bitIndex = c * 7 + r;
+            if (enemyPieces & (1ULL << bitIndex))
+                display[5 - r][c] = enemyChar;
+        }
+    }
+
+    // Print Representation
+    for (int i = 0; i < ROWS; i++) {
+        for (int j = 0; j < COLS; j++) {
+            std::cout << '\'' << display[i][j] << "\', ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+
+void print_board_indices() {
+    int board[6][7]; 
+    int iter = 0;
+    for (int i = 0; i < COLS; i++) {
+        for (int j = ROWS-1; j >= 0; j--) {
+            board[j][i] = iter;
+            iter++;
+        }
+    }
+    for (int i = 0; i < ROWS; i++) {
+        for (int j = 0; j < COLS; j++) {
+            std::cout << '\'' << board[i][j] << "\', ";
         }
         std::cout << std::endl;
     }
@@ -302,9 +380,10 @@ int main() {
     //std::array<char, 42> empty = create_empty_game_state();
     //uint64_t empty_bitboard = convert_to_bitboard(empty, 'P');
 
-    // Board empty_board;
+    // Board empty;
     // empty_board.player = 0;
     // empty_board.combined = 0;
+    // print_both_sides(empty_board, 'Y');
 
     // Board player1 = add_piece(empty_board, 4);
     // print_board_components(player1);
@@ -317,7 +396,18 @@ int main() {
     // Board player2 = swap_sides(enemy1);
     // player2 = add_piece(player2, 4);
     // print_board_components(player2);
-    
+
+
+    Board sample = create_board_state();
+    // print_bitboard(sample.player);
+    // std::cout << std::endl;
+    // print_bitboard(sample.combined);
+    print_both_sides(sample, 'R');
+
+
+
+
+    //print_board_indices();
 
     return 0;
 }
