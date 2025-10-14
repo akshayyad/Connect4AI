@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <bit>
 #include <unordered_map>
+#include <chrono>
 
 
 const int ROWS = 6;
@@ -130,6 +131,14 @@ uint64_t convert_to_bitboard(std::array<char, 42> board, char player) {
     }
     
     return bitboard;
+}
+
+
+Board create_empty_board() {
+    Board emp;
+    emp.player = 0ULL;
+    emp.combined = 0ULL;
+    return emp;
 }
 
 
@@ -371,7 +380,67 @@ int minimax(Board &board, int depth, int alpha, int beta, bool is_maximizing_pla
 }
 
 
+int get_AI_move(Board b) {
+    seen_states.clear();
+    int best_val = -1000000;
+    int best_move = -1;
+    
+}
+
+
+int game_manager_check_win(Board b) {
+    return (check_win(b.player) || check_win(b.player ^ b.combined));
+}
+
+
 void game_manager() {
+    int playerStartingPlace;
+    char playerColor;
+
+    std::cout << "Welcome to Connect 4!\nPlease enter if you'd like to go first(1) or second(2): ";
+    std::cin >> playerStartingPlace;
+    std::cout << std::endl;
+    
+    std::cout << "Please Enter the Color You'd like to Play with. Yellow (Y) or Red (R): ";
+    std::cin >> playerColor;
+    std::cout << std::endl;
+
+    int AIStartingPlace = (playerStartingPlace == 1) ? 2 : 1;
+    char AIColor = (playerColor == 'Y') ? 'R' : 'Y';
+    Board board = create_empty_board();
+
+    int playerTurn = (playerStartingPlace == 1) ? true : false;
+
+    while (!game_manager_check_win(board)) {
+        if (playerTurn) {
+            int playerMove;
+            std::cout << "Enter Your Move (1-7): ";
+            std::cin >> playerMove;
+            // Add Move to the Board
+            board.player ^= board.combined;
+            add_piece(board, playerMove-1);
+            board.player ^= board.combined;
+            print_both_sides(board, AIColor);
+            std::cout << std::endl;
+        } else {
+            std::cout << "\nAI is Searching for a Move...\n";
+            auto start = std::chrono::high_resolution_clock::now();
+            int AIMove = get_AI_move(board);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::cout << "AI Found Move in " 
+                      << std::chrono::duration_cast<std::chrono::seconds>(end-start).count()  << " seconds\n";
+            add_piece(board, AIMove);
+            print_both_sides(board, AIColor);
+            std::cout << "AI Placed a Piece on Column: " << AIMove+1 << "\n";
+            std::cout << std::endl;
+        }
+        playerTurn = !playerTurn;
+    }
+    if (check_win(board.player)) {
+        std::cout << "Game Over AI Wins!\n\n";
+    } else {
+        std::cout << "Congratulations for Besting the AI!\n\n";
+    }
     
 }
 
@@ -398,12 +467,14 @@ int main() {
     // print_board_components(player2);
 
 
-    Board sample = create_board_state();
+    //Board sample = create_board_state();
     // print_bitboard(sample.player);
     // std::cout << std::endl;
     // print_bitboard(sample.combined);
-    print_both_sides(sample, 'R');
-
+    //print_both_sides(sample, 'R');
+    
+    
+    game_manager();
 
 
 
