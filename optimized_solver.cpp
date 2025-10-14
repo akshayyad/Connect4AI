@@ -273,18 +273,15 @@ inline int check_win(uint64_t player) {
 }
 
 
-std::vector<int> get_available_moves(Board bitboard) {
-    std::vector<int> moves;
-    moves.reserve(7);
-    
+inline int get_available_moves(Board bitboard, int *moves) {
     uint64_t open = ~bitboard.combined & TOP_MASK;
+    int count = 0;
     while (open) {
-        int bit_index = std::countr_zero(open); // position of least significant 1
-        int col = bit_index / 7;                // each column has 7 bits
-        moves.push_back(col);
-        open &= (open - 1);                     // clear the lowest set bit
+        int bit = std::countr_zero(open);
+        moves[count++] = bit / 7;
+        open &= open - 1;
     }
-    return moves;
+    return count;
 }
 
 
@@ -297,10 +294,14 @@ inline void add_piece(Board &bitboard, int col) {
 
 
 inline void undo_move(Board &b, int col) {
-    // clear the topmost bit of that column
-    b.combined &= ~(b.combined & column_mask(col) ? 
-                    1ULL << (std::bit_width((b.combined & column_mask(col))) - 1) : 0);
-    b.player   &= b.combined; // keep consistency
+    uint64_t colbits = b.combined & column_mask(col);
+    if (colbits == 0) return;                          // nothing to undo
+    // position of most significant 1 in column bits
+    int msb = 63 - __builtin_clzll(colbits);
+    uint64_t move_mask = 1ULL << msb;
+    b.combined &= ~move_mask;
+    // ensure player mask is consistent (clear any piece that was removed)
+    b.player &= b.combined;
 }
 
 
@@ -333,49 +334,36 @@ void print_seen_states() {
 
 
 int minimax(Board &board, int depth, int alpha, int beta, bool is_maximizing_player) {
-    if (check_win(board.player)) return 1000-depth;
-    if (check_win((board.player ^ board.combined))) return -1000+depth;
-    if (check_draw(board)) return 5;
-    auto it = seen_states.find(board);
-    if (it != seen_states.end())
-        return it->second;
-    if (depth >= 8) return 0;
+    if (check_win(board.player)) return 10000000 - depth;
+    if (check_win(board.player ^ board.combined)) return -10000000 + depth;
+    if (check_draw(board) || depth >= 13) return 0;
 
-    if (is_maximizing_player) {
-        int best_score = -1000000;
-        std::vector<int> possible_moves = get_available_moves(board);
-        for (auto move: possible_moves) {
-            add_piece(board, move);
-            board.player ^= board.combined;
-            int score = minimax(board, depth+1, alpha, beta, false);
-            board.player ^= board.combined;
-            undo_move(board, move);
+    auto it = seen_states.find(board);
+    if (it != seen_states.end()) return it->second;
+
+    int best_score = is_maximizing_player ? -1000000 : 1000000;
+    int moves[7];
+    int count = get_available_moves(board, moves);
+
+    for (int i = 0; i < count; i++) {
+        Board newBoard = board;
+        add_piece(newBoard, moves[i]);
+        newBoard.player ^= newBoard.combined; // switch player
+
+        int score = minimax(newBoard, depth + 1, alpha, beta, !is_maximizing_player);
+
+        if (is_maximizing_player) {
             best_score = std::max(best_score, score);
             alpha = std::max(alpha, score);
-            if (beta <= alpha) {
-                break;
-            }
-        }
-        seen_states[board] = best_score;
-        return best_score;
-    } else {
-        int best_score = 1000000;
-        std::vector<int> enemy_possible_moves = get_available_moves(board);
-        for (auto move: enemy_possible_moves) {
-            add_piece(board, move);
-            board.player ^= board.combined;
-            int score = minimax(board, depth+1, alpha, beta, true);
-            board.player ^= board.combined;
-            undo_move(board, move);
+        } else {
             best_score = std::min(best_score, score);
             beta = std::min(beta, score);
-            if (beta <= alpha) {
-                break;
-            }
         }
-        seen_states[board] = best_score;
-        return best_score;
+        if (beta <= alpha) break; // alpha-beta pruning
     }
+
+    seen_states[board] = best_score;
+    return best_score;
 
 }
 
@@ -384,7 +372,25 @@ int get_AI_move(Board b) {
     seen_states.clear();
     int best_val = -1000000;
     int best_move = -1;
-    
+    int moves[7];
+    int count = get_available_moves(b, moves);
+    for (int i = 0; i < count; ++i) {
+        Board newBoard = b;
+        add_piece(newBoard, moves[i]);
+
+        // immediate win -> take it
+        if (check_win(newBoard.player)) return moves[i];
+
+        // evaluate position from opponent's perspective
+        newBoard.player ^= newBoard.combined;
+        int move_val = minimax(newBoard, 0, -1000000, 1000000, false);
+
+        if (move_val > best_val) {
+            best_val = move_val;
+            best_move = moves[i];
+        }
+    }
+    return best_move;
 }
 
 
@@ -416,6 +422,7 @@ void game_manager() {
             int playerMove;
             std::cout << "Enter Your Move (1-7): ";
             std::cin >> playerMove;
+            if (playerMove == -1) {break;}
             // Add Move to the Board
             board.player ^= board.combined;
             add_piece(board, playerMove-1);
@@ -438,47 +445,16 @@ void game_manager() {
     }
     if (check_win(board.player)) {
         std::cout << "Game Over AI Wins!\n\n";
-    } else {
+    } else if (check_win(board.player^=board.combined)) {
         std::cout << "Congratulations for Besting the AI!\n\n";
+    } else {
+        std::cout << std::endl;
     }
     
 }
 
 
-int main() {
-    //std::array<char, 42> empty = create_empty_game_state();
-    //uint64_t empty_bitboard = convert_to_bitboard(empty, 'P');
-
-    // Board empty;
-    // empty_board.player = 0;
-    // empty_board.combined = 0;
-    // print_both_sides(empty_board, 'Y');
-
-    // Board player1 = add_piece(empty_board, 4);
-    // print_board_components(player1);
-
-    // Board enemy1 = swap_sides(player1);
-    // enemy1 = add_piece(enemy1, 4);
-    // print_board_components(enemy1);
-
-
-    // Board player2 = swap_sides(enemy1);
-    // player2 = add_piece(player2, 4);
-    // print_board_components(player2);
-
-
-    //Board sample = create_board_state();
-    // print_bitboard(sample.player);
-    // std::cout << std::endl;
-    // print_bitboard(sample.combined);
-    //print_both_sides(sample, 'R');
-    
-    
+int main() { 
     game_manager();
-
-
-
-    //print_board_indices();
-
     return 0;
 }
