@@ -148,15 +148,15 @@ Board create_board_state() {
                                             ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                             ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                             ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                            'P', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                            'P', ' ', ' ', ' ', 'P', 'P', ' '};
+                                            ' ', 'P', ' ', ' ', ' ', ' ', ' ', 
+                                            ' ', 'P', ' ', 'P', 'P', ' ', ' '};
 
     std::array<char, FULL> boardplayer = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                          ' ', ' ', ' ', ' ', 'P', 'P', ' '};
+                                          ' ', ' ', ' ', 'P', 'P', ' ', ' '};
     uint64_t combined = convert_to_bitboard(boardcombined, 'P');
     //print_bits_in_uint(combined);
     uint64_t player = convert_to_bitboard(boardplayer, 'P');
@@ -360,23 +360,30 @@ int minimaz(Board &board, int depth, int alpha, int beta, bool is_maximizing) {
 
 
 int minimax(Board &board, int depth, int alpha, int beta, bool is_maximizing_player) {
-    if (check_win(board.player)) return 10000000 - depth;
-    if (check_win(board.player ^ board.combined)) return -10000000 + depth;
-    if (check_draw(board) || depth >= 13) return 0;
+    if (check_win(board.player ^ board.combined)) {
+        return is_maximizing_player ? -10000000 + depth : 10000000 - depth;
+    }
+    if (check_draw(board)) return 5;
+    if (depth >= 13) return 0;
 
-    auto it = seen_states.find(board);
-    if (it != seen_states.end()) return it->second;
+    // auto it = seen_states.find(board);
+    // if (it != seen_states.end()) return it->second;
 
     int best_score = is_maximizing_player ? -1000000 : 1000000;
     int moves[7];
     int count = get_available_moves(board, moves);
 
     for (int i = 0; i < count; i++) {
-        Board newBoard = board;
-        add_piece(newBoard, moves[i]);
-        newBoard.player ^= newBoard.combined; // switch player
+        add_piece(board, moves[i]);
+        if (check_win(board.player)) {
+            undo_move(board, moves[i]);
+            return is_maximizing_player ? 10000000 - depth : -10000000 + depth;
+        }
 
-        int score = minimax(newBoard, depth + 1, alpha, beta, !is_maximizing_player);
+        board.player ^= board.combined; // switch player
+        int score = minimax(board, depth + 1, alpha, beta, !is_maximizing_player);
+        board.player ^= board.combined;
+        undo_move(board, moves[i]);
 
         if (is_maximizing_player) {
             best_score = std::max(best_score, score);
@@ -388,7 +395,7 @@ int minimax(Board &board, int depth, int alpha, int beta, bool is_maximizing_pla
         if (beta <= alpha) break; // alpha-beta pruning
     }
 
-    seen_states[board] = best_score;
+    //seen_states[board] = best_score;
     return best_score;
 
 }
@@ -439,8 +446,9 @@ void game_manager() {
 
     int AIStartingPlace = (playerStartingPlace == 1) ? 2 : 1;
     char AIColor = (playerColor == 'Y') ? 'R' : 'Y';
-    //Board board = create_empty_board();
-    Board board = create_board_state();
+    Board board = create_empty_board();
+    print_both_sides(board, AIColor);
+    //Board board = create_board_state();
 
     int playerTurn = (playerStartingPlace == 1) ? true : false;
 
@@ -459,9 +467,9 @@ void game_manager() {
         } else {
             std::cout << "\nAI is Searching for a Move...\n";
             auto start = std::chrono::high_resolution_clock::now();
-            //int AIMove = get_AI_move(board);
+            int AIMove = get_AI_move(board);
             seen_states.clear();
-            int AIMove = minimaz(board, 0, -1000, 1000, true);
+            //int AIMove = minimax(board, 0, -1000, 1000, true);
             auto end = std::chrono::high_resolution_clock::now();
             std::cout << "AI Found Move in " 
                       << std::chrono::duration_cast<std::chrono::seconds>(end-start).count()  << " seconds\n";
@@ -486,7 +494,7 @@ void game_manager() {
 
 
 int main() { 
-    //game_manager();
+    game_manager();
     //Board state = create_empty_board();
     // seen_states.clear();
     // minimaz(state, 0, -1000000, 1000000, true);
@@ -547,4 +555,43 @@ int main() {
 //     }
 //     //if (depth == 0) std::cout << "Best Move Found: " << best_move << '\n';
 //     return {best_score, best_move};
+// }
+
+
+
+// int minimax(Board &board, int depth, int alpha, int beta, bool is_maximizing_player) {
+//     if (check_win(board.player ^ board.combined)) {
+//         return is_maximizing_player ? -10000000 + depth : 10000000 - depth;
+//     }
+//     if (check_draw(board)) return 5;
+//     if (depth >= 5) return 0;
+
+//     // auto it = seen_states.find(board);
+//     // if (it != seen_states.end()) return it->second;
+
+//     int best_score = is_maximizing_player ? -1000000 : 1000000;
+//     int moves[7];
+//     int count = get_available_moves(board, moves);
+
+//     for (int i = 0; i < count; i++) {
+//         Board newBoard = board;
+//         add_piece(newBoard, moves[i]);
+//         if (check_win(newBoard.player)) return is_maximizing_player ? 10000000 - depth : -10000000 + depth;
+//         newBoard.player ^= newBoard.combined; // switch player
+
+//         int score = minimax(newBoard, depth + 1, alpha, beta, !is_maximizing_player);
+
+//         if (is_maximizing_player) {
+//             best_score = std::max(best_score, score);
+//             alpha = std::max(alpha, score);
+//         } else {
+//             best_score = std::min(best_score, score);
+//             beta = std::min(beta, score);
+//         }
+//         if (beta <= alpha) break; // alpha-beta pruning
+//     }
+
+//     //seen_states[board] = best_score;
+//     return best_score;
+
 // }
