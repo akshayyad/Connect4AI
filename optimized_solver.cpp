@@ -10,6 +10,7 @@
 #include <bit>
 #include <unordered_map>
 #include <chrono>
+#include <utility>
 
 
 const int ROWS = 6;
@@ -144,19 +145,22 @@ Board create_empty_board() {
 
 Board create_board_state() {
     std::array<char, FULL> boardcombined = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                            ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
-                                            ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
-                                            'P', ' ', ' ', 'P', ' ', ' ', ' ', 
-                                            'P', ' ', ' ', 'P', ' ', ' ', 'P', 
-                                            'P', 'P', ' ', 'P', ' ', 'P', 'P'};
+                                            ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                            ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                            ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                            'P', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                            'P', ' ', ' ', ' ', 'P', 'P', ' '};
+
     std::array<char, FULL> boardplayer = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                          ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
-                                          ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
-                                          ' ', ' ', ' ', ' ', ' ', ' ', 'P', 
-                                          'P', ' ', ' ', 'P', ' ', 'P', ' '};
+                                          ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                          ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                          ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+                                          ' ', ' ', ' ', ' ', 'P', 'P', ' '};
     uint64_t combined = convert_to_bitboard(boardcombined, 'P');
+    //print_bits_in_uint(combined);
     uint64_t player = convert_to_bitboard(boardplayer, 'P');
+    //print_bits_in_uint(player);
     Board sample;
     sample.combined = combined;
     sample.player = player;
@@ -305,9 +309,8 @@ inline void undo_move(Board &b, int col) {
 }
 
 
-Board swap_sides(Board &board) {
+void swap_sides(Board &board) {
     board.player ^= board.combined;
-    return board;
 }
 
 
@@ -330,6 +333,29 @@ void print_seen_states() {
         std::cout << "Player: " << state.first.player << " " 
                   << "Combined: " << state.first.combined << std::endl;
     }
+}
+
+// Focus First on just Printing out each Board State, forget about returning the correct scores
+int minimaz(Board &board, int depth, int alpha, int beta, bool is_maximizing) {
+
+    if (check_win(board.player)) return 1000-depth;
+    if (check_win(board.player^board.combined)) return -1000+depth;
+    if (check_draw(board)) return 5;
+    if (depth >= 6) return 0;
+
+    int moves[7];
+    int count = get_available_moves(board, moves);
+    if (is_maximizing) {
+        int best = -10000;
+        for (int i = 0; i < count; i++) {
+            add_piece(board, moves[i]);
+            
+        }
+    }
+
+    
+    //if (depth == 0) std::cout << "Best Move Found: " << best_move << '\n';
+    return 0;
 }
 
 
@@ -413,7 +439,8 @@ void game_manager() {
 
     int AIStartingPlace = (playerStartingPlace == 1) ? 2 : 1;
     char AIColor = (playerColor == 'Y') ? 'R' : 'Y';
-    Board board = create_empty_board();
+    //Board board = create_empty_board();
+    Board board = create_board_state();
 
     int playerTurn = (playerStartingPlace == 1) ? true : false;
 
@@ -432,12 +459,16 @@ void game_manager() {
         } else {
             std::cout << "\nAI is Searching for a Move...\n";
             auto start = std::chrono::high_resolution_clock::now();
-            int AIMove = get_AI_move(board);
+            //int AIMove = get_AI_move(board);
+            seen_states.clear();
+            int AIMove = minimaz(board, 0, -1000, 1000, true);
             auto end = std::chrono::high_resolution_clock::now();
             std::cout << "AI Found Move in " 
                       << std::chrono::duration_cast<std::chrono::seconds>(end-start).count()  << " seconds\n";
+            //add_piece(board, AIMove);
             add_piece(board, AIMove);
             print_both_sides(board, AIColor);
+            //std::cout << "AI Placed a Piece on Column: " << AIMove+1 << "\n";
             std::cout << "AI Placed a Piece on Column: " << AIMove+1 << "\n";
             std::cout << std::endl;
         }
@@ -455,6 +486,65 @@ void game_manager() {
 
 
 int main() { 
-    game_manager();
+    //game_manager();
+    //Board state = create_empty_board();
+    // seen_states.clear();
+    // minimaz(state, 0, -1000000, 1000000, true);
+
+    //Board state = create_board_state();
+    
+    // print_both_sides(state, 'Y');
+    // std::cout << '\n';
+    // print_bits_in_uint(state.player);
+    // swap_sides(state);
+    // print_bits_in_uint(state.player);
+    // print_both_sides(state, 'Y');
     return 0;
 }
+
+
+// Focus First on just Printing out each Board State, forget about returning the correct scores
+// std::pair<int, int> minimaz(Board &board, int depth, int alpha, int beta, bool is_maximizing) {
+
+//     if (check_win(board.player^board.combined)) return {1000-depth, 0};
+//     if (check_win(board.player)) return {-1000+depth, 0};
+//     if (check_draw(board)) return {5, 0};
+//     if (depth >= 6) return {0, 0};
+
+//     int best_score = is_maximizing ? -1000 : 1000;
+//     int moves[7];
+//     int count = get_available_moves(board, moves);
+//     int best_move = moves[0];
+
+//     for (int i = 0; i < count; i++) {
+//         add_piece(board, moves[i]);
+//         if (check_win(board.player)) { undo_move(board, moves[i]); return {1000-depth, moves[i]}; }
+//         // Print out the Move Made
+//         //std::cout << "Move at Depth " << depth << ": " << moves[i] << '\n';
+//         //print_both_sides(board, 'Y');
+//         //std::cout << std::endl;
+//         board.player ^= board.combined;
+//         std::pair<int, int> results = minimaz(board, depth+1, alpha, beta, !is_maximizing);
+//         int score = results.first;
+//         //std::cout << "Score in this Position: " << score << "\n\n";
+//         board.player ^= board.combined;
+//         undo_move(board, moves[i]);
+
+//         if (is_maximizing) {
+//             if (best_score < score) {
+//                 best_score = score;
+//                 best_move = moves[i];
+//             }
+//             //alpha = std::max(alpha, score);
+//         } else {
+//             if (best_score > score) {
+//                 best_score = score;
+//                 best_move = moves[i];
+//             }
+//             //beta = std::min(beta, score);
+//         }
+//         //if (beta <= alpha) break; // alpha-beta pruning
+//     }
+//     //if (depth == 0) std::cout << "Best Move Found: " << best_move << '\n';
+//     return {best_score, best_move};
+// }
