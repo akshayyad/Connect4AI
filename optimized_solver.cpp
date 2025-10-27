@@ -51,26 +51,26 @@ struct std::hash<Board>
 std::unordered_map<Board, int> seen_states;
 
 
-std::array<char, 42> create_empty_game_state() {
-    std::array<char, FULL> board = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                    ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                    ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                    ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                    ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                    ' ', ' ', ' ', ' ', ' ', ' ', ' '};
-    return board;         
-}
+// std::array<char, 42> create_empty_game_state() {
+//     std::array<char, FULL> board = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                     ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                     ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                     ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                     ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                     ' ', ' ', ' ', ' ', ' ', ' ', ' '};
+//     return board;         
+// }
 
 
-std::array<char, 42> create_game_state() {
-    std::array<char, FULL> board = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                    ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
-                                    ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
-                                    'P', ' ', ' ', 'P', ' ', ' ', ' ', 
-                                    'P', ' ', ' ', 'P', ' ', ' ', 'P', 
-                                    'P', 'P', ' ', 'P', ' ', 'P', 'P'};
-    return board;         
-}
+// std::array<char, 42> create_game_state() {
+//     std::array<char, FULL> board = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                     ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
+//                                     ' ', ' ', ' ', 'P', ' ', ' ', ' ', 
+//                                     'P', ' ', ' ', 'P', ' ', ' ', ' ', 
+//                                     'P', ' ', ' ', 'P', ' ', ' ', 'P', 
+//                                     'P', 'P', ' ', 'P', ' ', 'P', 'P'};
+//     return board;         
+// }
 
 
 void print_bits_in_uint(uint64_t bitboard) {
@@ -142,21 +142,49 @@ Board create_empty_board() {
     return emp;
 }
 
+// std::array<char, FULL> boardcombined = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                             ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                             ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                             ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                             ' ', 'P', ' ', ' ', ' ', ' ', ' ', 
+//                                             ' ', 'P', ' ', 'P', 'P', ' ', ' '};
+
+//     std::array<char, FULL> boardplayer = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+//                                           ' ', ' ', ' ', 'P', 'P', ' ', ' '};
+
+    
 
 Board create_board_state() {
+    // std::array<char, FULL> boardcombined = {'P', ' ', ' ', ' ', ' ', ' ', ' ', 
+    //                                         'P', ' ', ' ', ' ', ' ', ' ', ' ', 
+    //                                         'P', ' ', ' ', ' ', ' ', ' ', ' ', 
+    //                                         'P', ' ', ' ', ' ', ' ', 'P', ' ', 
+    //                                         'P', ' ', ' ', ' ', ' ', 'P', ' ', 
+    //                                         'P', 'P', 'P', 'P', ' ', 'P', ' ',};
+
+    // std::array<char, FULL> boardplayer = {'P', ' ', ' ', ' ', ' ', ' ', ' ', 
+    //                                       'P', ' ', ' ', ' ', ' ', ' ', ' ', 
+    //                                       ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
+    //                                       'P', ' ', ' ', ' ', ' ', ' ', ' ', 
+    //                                       'P', ' ', ' ', ' ', ' ', ' ', ' ', 
+    //                                       'P', ' ', 'P', ' ', ' ', ' ', ' ',};
     std::array<char, FULL> boardcombined = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                             ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                             ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                             ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                             ' ', 'P', ' ', ' ', ' ', ' ', ' ', 
-                                            ' ', 'P', ' ', 'P', 'P', ' ', ' '};
+                                            ' ', 'P', ' ', 'P', ' ', 'P', 'P'};
 
     std::array<char, FULL> boardplayer = {' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
                                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                          ' ', ' ', ' ', ' ', ' ', ' ', ' ', 
-                                          ' ', ' ', ' ', 'P', 'P', ' ', ' '};
+                                          ' ', 'P', ' ', ' ', ' ', ' ', ' ', 
+                                          ' ', 'P', ' ', ' ', ' ', ' ', ' '};
     uint64_t combined = convert_to_bitboard(boardcombined, 'P');
     //print_bits_in_uint(combined);
     uint64_t player = convert_to_bitboard(boardplayer, 'P');
@@ -335,39 +363,16 @@ void print_seen_states() {
     }
 }
 
-// Focus First on just Printing out each Board State, forget about returning the correct scores
-int minimaz(Board &board, int depth, int alpha, int beta, bool is_maximizing) {
-
-    if (check_win(board.player)) return 1000-depth;
-    if (check_win(board.player^board.combined)) return -1000+depth;
-    if (check_draw(board)) return 5;
-    if (depth >= 6) return 0;
-
-    int moves[7];
-    int count = get_available_moves(board, moves);
-    if (is_maximizing) {
-        int best = -10000;
-        for (int i = 0; i < count; i++) {
-            add_piece(board, moves[i]);
-            
-        }
-    }
-
-    
-    //if (depth == 0) std::cout << "Best Move Found: " << best_move << '\n';
-    return 0;
-}
-
 
 int minimax(Board &board, int depth, int alpha, int beta, bool is_maximizing_player) {
     if (check_win(board.player ^ board.combined)) {
         return is_maximizing_player ? -10000000 + depth : 10000000 - depth;
     }
     if (check_draw(board)) return 5;
-    if (depth >= 13) return 0;
+    if (depth >= 12) return 0;
 
-    // auto it = seen_states.find(board);
-    // if (it != seen_states.end()) return it->second;
+    auto it = seen_states.find(board);
+    if (it != seen_states.end()) return it->second;
 
     int best_score = is_maximizing_player ? -1000000 : 1000000;
     int moves[7];
@@ -395,7 +400,7 @@ int minimax(Board &board, int depth, int alpha, int beta, bool is_maximizing_pla
         if (beta <= alpha) break; // alpha-beta pruning
     }
 
-    //seen_states[board] = best_score;
+    seen_states[board] = best_score;
     return best_score;
 
 }
@@ -404,9 +409,10 @@ int minimax(Board &board, int depth, int alpha, int beta, bool is_maximizing_pla
 int get_AI_move(Board b) {
     seen_states.clear();
     int best_val = -1000000;
-    int best_move = -1;
+    
     int moves[7];
     int count = get_available_moves(b, moves);
+    int best_move = moves[0];
     for (int i = 0; i < count; ++i) {
         Board newBoard = b;
         add_piece(newBoard, moves[i]);
@@ -446,9 +452,12 @@ void game_manager() {
 
     int AIStartingPlace = (playerStartingPlace == 1) ? 2 : 1;
     char AIColor = (playerColor == 'Y') ? 'R' : 'Y';
-    Board board = create_empty_board();
-    print_both_sides(board, AIColor);
-    //Board board = create_board_state();
+    //Board board = create_empty_board();
+    Board board = create_board_state();
+    print_bits_in_uint(board.combined);
+    print_bits_in_uint(board.player);
+    //print_both_sides(board, AIColor);
+    
 
     int playerTurn = (playerStartingPlace == 1) ? true : false;
 
