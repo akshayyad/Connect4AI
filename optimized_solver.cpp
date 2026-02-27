@@ -48,7 +48,9 @@ struct std::hash<Board>
 };
 
 
-std::unordered_map<Board, int> seen_states;
+enum NodeType { EXACT, LOWER_BOUND, UPPER_BOUND };
+struct TTEntry { int score; NodeType type; };
+std::unordered_map<Board, TTEntry> seen_states;
 
 
 // std::array<char, 42> create_empty_game_state() {
@@ -368,12 +370,19 @@ int minimax(Board &board, int depth, int alpha, int beta, bool is_maximizing_pla
     if (check_win(board.player ^ board.combined)) {
         return is_maximizing_player ? -10000000 + depth : 10000000 - depth;
     }
-    if (check_draw(board)) return 5;
+    if (check_draw(board)) return 0;
     if (depth >= 12) return 0;
 
     auto it = seen_states.find(board);
-    if (it != seen_states.end()) return it->second;
+    if (it != seen_states.end()) {
+        TTEntry &entry = it->second;
+        if (entry.type == EXACT)       return entry.score;
+        if (entry.type == LOWER_BOUND) alpha = std::max(alpha, entry.score);
+        if (entry.type == UPPER_BOUND) beta  = std::min(beta,  entry.score);
+        if (alpha >= beta)             return entry.score;
+    }
 
+    int alpha_orig = alpha;
     int best_score = is_maximizing_player ? -1000000 : 1000000;
     int moves[7];
     int count = get_available_moves(board, moves);
@@ -400,7 +409,11 @@ int minimax(Board &board, int depth, int alpha, int beta, bool is_maximizing_pla
         if (beta <= alpha) break; // alpha-beta pruning
     }
 
-    seen_states[board] = best_score;
+    NodeType node_type;
+    if (best_score <= alpha_orig)  node_type = UPPER_BOUND;
+    else if (best_score >= beta)   node_type = LOWER_BOUND;
+    else                           node_type = EXACT;
+    seen_states[board] = { best_score, node_type };
     return best_score;
 
 }
@@ -454,9 +467,9 @@ void game_manager() {
     char AIColor = (playerColor == 'Y') ? 'R' : 'Y';
     //Board board = create_empty_board();
     Board board = create_board_state();
-    print_bits_in_uint(board.combined);
-    print_bits_in_uint(board.player);
-    //print_both_sides(board, AIColor);
+    //print_bits_in_uint(board.combined);
+    //print_bits_in_uint(board.player);
+    print_both_sides(board, AIColor);
     
 
     int playerTurn = (playerStartingPlace == 1) ? true : false;
@@ -493,7 +506,7 @@ void game_manager() {
     }
     if (check_win(board.player)) {
         std::cout << "Game Over AI Wins!\n\n";
-    } else if (check_win(board.player^=board.combined)) {
+    } else if (check_win(board.player ^ board.combined)) {
         std::cout << "Congratulations for Besting the AI!\n\n";
     } else {
         std::cout << std::endl;
